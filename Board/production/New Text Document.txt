@@ -1,0 +1,23 @@
+2. Gerber files needed for 2-layer & 4-layer PCB boards:
+Top layer: pcbname.GTL
+Inner Layer 1: pcbname.GL1 (for 4-layer board)
+Inner Layer 2: pcbname.GL2 (for 4-layer board)
+Bottom layer: pcbname.GBL
+Solder Stop Mask top: pcbname.GTS
+Solder Stop Mask Bottom: pcbname.GBS
+Silk Top: pcbname.GTO
+Silk Bottom: pcbname.GBO
+NC Drill: pcbname.TXT
+Outline layer: pcbname.GKO or pcbname.DO
+
+Note:
+ All the gerber files must be in RS-274x format, except the drill file should be in Excellon format. 
+ If there is no pcbname.GKO or DO file, please make sure the PCB outline or shape shall at least be specified in other layer, silkscreen or soldermask layer etc. 
+ If soldermask layers are not required, please clarify surface finish for both sides when you submit your gerber files. 
+ 
+
+ 
+ How to generate Gerber files from KiCad or Eagle
+
+http://blog.iteadstudio.com/how-to-generate-gerber-files-from-kicad/
+http://blog.iteadstudio.com/how-to-export-gerber-files-from-eagle/
