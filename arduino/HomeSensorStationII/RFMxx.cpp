@@ -449,5 +449,3 @@ if (IsRF69) {
     Serial.println();
   }
 }
-
-

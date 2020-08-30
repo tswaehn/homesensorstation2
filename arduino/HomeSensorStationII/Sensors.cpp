@@ -200,6 +200,7 @@ void Sensors::process(){
   static unsigned long startTime= 0;
   unsigned long currentTime= millis();
 
+/*
   // check if sensors need setup
   if (loadNeeded){
     loadNeeded= 0; // run this routine only once
@@ -214,7 +215,7 @@ void Sensors::process(){
       storeToEEPROM();
     }
   }
-       
+*/       
   // check if 1min has passed
   if ((currentTime-startTime) > 60000){
     startTime= currentTime;

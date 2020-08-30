@@ -11,41 +11,21 @@
 
 #define PROGNAME1       "Home Sensor"
 #define PROGNAME2       "Station"
-#define PROGVERS        "v2.2" 
+#define PROGVERS        "v2.3" 
 
 #include "Arduino.h"
-#include "Wire.h"
-#include "RFMxx.h"
 #include "SensorBase.h"
-#include "LaCrosse.h"
 #include "Sensors.h"
 #include "EEPROM.h"
 #include "SSD1306_minimal.h"
 #include "wifi_config.h"
+#include "myRFMxx.h"
 
 #if WIFI_ENABLED == 1
   #include <ESP8266WiFi.h>  
   #include "SensorWebClient.h"
   
 #endif
-
-// --- Configuration ---------------------------------------------------------------------------------------------------
-#define RECEIVER_ENABLED       1                     // Set to 0 if you don't want to receive 
-#define USE_OLD_IDS            0                     // Set to 1 to use the old ID calcualtion
-
-// The following settings can also be set from FHEM
-#define ENABLE_ACTIVITY_LED    1         // <n>a     set to 0 if the blue LED bothers
-bool DEBUG                   = 1;        // <n>d     set to 1 to see debug messages
-bool ANALYZE_FRAMES          = 1;        // <n>z     set to 1 to display analyzed frame data instead of the normal data
-unsigned long DATA_RATE_R1   = 17241ul;  // <n>r     use one of the possible data rates (for RFM #1)
-unsigned long DATA_RATE_R2   = 9579ul;   // <n>R     use one of the possible data rates (for RFM #2)
-uint16_t TOGGLE_INTERVAL_R1  = 0;        // <n>t     0=no toggle, else interval in seconds (for RFM #1)
-uint16_t TOGGLE_INTERVAL_R2  = 0;        // <n>T     0=no toggle, else interval in seconds (for RFM #2)
-byte TOGGLE_MODE_R1          = 3;        // <n>m     bits 1: 17.241 kbps, 2 : 9.579 kbps, 4 : 8.842 kbps (for RFM #1)
-byte TOGGLE_MODE_R2          = 3;        // <n>M     bits 1: 17.241 kbps, 2 : 9.579 kbps, 4 : 8.842 kbps (for RFM #2)
-unsigned long INITIAL_FREQ   = 868300;   // <n>f     initial frequency in kHz (5 kHz steps, 860480 ... 879515) 
-bool RELAY                   = 0;        // <n>r     if 1 all received packets will be retransmitted  
-byte PASS_PAYLOAD            = 0;        // <n>p     transmitted the payload on the serial port 1: all, 2: only undecoded data
 
 
 //Byte array of bitmap of 76 x 56 px:
@@ -89,128 +69,13 @@ const unsigned char img_battery_full[] PROGMEM = {
 
 
 
-  
-
-// --- Variables -------------------------------------------------------------------------------------------------------
-unsigned long lastToggleR1 = 0;
-unsigned long lastToggleR2 = 0;
-byte commandData[32];
-byte commandDataPointer = 0;
-
-// mosi, miso, sck, ss, irq 
-RFMxx rfm1(D7, D6, D5, D8, D0);
-
 
 
 SSD1306_Mini oled;
+// mosi, miso, sck, ss, irq 
+//RFMxx rfm1(D7, D6, D5, D8, D0);
+MyRFMxx myRFMxx(D7, D6, D5, D8, D0, true);
 
-
-
-void SetDebugMode(boolean mode) {
-  DEBUG = mode;
-  rfm1.SetDebugMode(mode);
-
-}
-
-
-
-
-void HandleReceivedData(RFMxx *rfm) {
-  rfm->EnableReceiver(false);
-
-  byte payload[PAYLOADSIZE];
-  rfm->GetPayload(payload);
-
-  if (ANALYZE_FRAMES) {
-    LaCrosse::AnalyzeFrame(payload);
-    Serial.println();
-  }
-  else if (PASS_PAYLOAD == 1) {
-
-    for (int i = 0; i < PAYLOADSIZE; i++) {
-      Serial.print(payload[i], HEX);
-      Serial.print(" ");
-    }
-    Serial.println();
-  }
-  else {
-
-    if (DEBUG) {
-      Serial.print("\nEnd receiving, HEX raw data: ");
-      for (int i = 0; i < 16; i++) {
-        Serial.print(payload[i], HEX);
-        Serial.print(" ");
-      }
-      Serial.println();
-    }
-
-    byte frameLength = 0;
-
-
-    // Try LaCrosse like TX29DTH
-    if (LaCrosse::IsValidDataRate(rfm->GetDataRate()) && LaCrosse::TryHandleData(payload)) {
-      frameLength = LaCrosse::FRAME_LENGTH;
-    }
-    else if (PASS_PAYLOAD == 2) {
-      for (int i = 0; i < PAYLOADSIZE; i++) {
-        Serial.print(payload[i], HEX);
-        Serial.print(" ");
-      }
-      Serial.println();
-    }
-
-
-    if (RELAY && frameLength > 0) {
-      delay(64);
-      rfm->SendArray(payload, frameLength);
-      if (DEBUG) { Serial.println("Relayed"); }
-    }
-
-  }
-  rfm->EnableReceiver(true);
-}
-
-void HandleDataRateToggle(RFMxx *rfm, unsigned long *lastToggle, unsigned long *dataRate, uint16_t interval, byte toggleMode) {
-  if (interval > 0) {
-    // After about 50 days millis() will overflow to zero 
-    if (millis() < *lastToggle) {
-      *lastToggle = 0;
-    }
-
-    if (millis() > *lastToggle + interval * 1000) {
-      // Bits 1: 17.241 kbps, 2 : 9.579 kbps, 4 : 8.842 kbps
-
-      if (*dataRate == 8842ul) {
-        if (toggleMode & 2) {
-          *dataRate = 9579ul;
-        }
-        else if (toggleMode & 1) {
-          *dataRate = 17241ul;
-        }
-      }
-      else if (*dataRate == 9579ul) {
-        if (toggleMode & 1) {
-          *dataRate = 17241ul;
-        }
-        else if (toggleMode & 4) {
-          *dataRate = 8842ul;
-        }
-      }
-      else if (*dataRate == 17241ul) {
-        if (toggleMode & 4) {
-          *dataRate = 8842ul;
-        }
-        else if (toggleMode & 2) {
-          *dataRate = 9579ul;
-        }
-      }
-
-      rfm->SetDataRate(*dataRate);
-      *lastToggle = millis();
-
-    }
-  }
-}
 
 
 
@@ -333,20 +198,20 @@ void loop(void) {
     //HandleSerialPort(Serial.read());
   }
 
-  // Handle the data reception
-  // -------------------------
-  if (RECEIVER_ENABLED) {
-    rfm1.Receive();
-    if (rfm1.PayloadIsReady()) {
-      HandleReceivedData(&rfm1);
-    }
-    
+
+  struct MyRFMxx::Frame frame;
+  myRFMxx.process(frame);
+  if (frame.IsValid){
+    Serial.print(" ID:");
+    Serial.print(frame.ID);
+    Serial.print(" Temp:");
+    Serial.print(frame.Temperature);
+    Serial.print(" Hum:");
+    Serial.print(frame.Humidity);
+    Serial.println();
+
+    Sensors::HandleSensorData( frame.ID, frame.Temperature, frame.Humidity, frame.WeakBatteryFlag );
   }
- 
-  // Handle the data rate
-  // --------------------
-  HandleDataRateToggle(&rfm1, &lastToggleR1, &DATA_RATE_R1, TOGGLE_INTERVAL_R1, TOGGLE_MODE_R1);
-  
   
   //
   //
@@ -418,22 +283,9 @@ void setup(void) {
   sensors.addSensor( 0, "Fridge     ", 53 );//53
   sensors.addSensor( 1, "Weather    ", 30 );//4
   sensors.addSensor( 2, "Dining Room", 56 );//42
-  
-  SetDebugMode(DEBUG);
-  LaCrosse::USE_OLD_ID_CALCULATION = USE_OLD_IDS;
-  
 
-  lastToggleR1 = millis();
+  myRFMxx.setup();
   
-  rfm1.InitialzeLaCrosse();
-  rfm1.SetFrequency(INITIAL_FREQ);
-  rfm1.SetDataRate(DATA_RATE_R1);
-  rfm1.EnableReceiver(true);
-  
-  
-  if (DEBUG) {
-    Serial.println("Radio setup complete. Starting to receive messages");
-  }
 
 
 }
