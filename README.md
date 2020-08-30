@@ -11,6 +11,8 @@
    * schematics is in the repo 
 *  SSD1306 display (128x64 pixels)
    * any compatible display with I2C will do
+*  Sensors must be TX29 compatible
+   * see here http://fredboboss.free.fr/articles/tx29.php
 *  Arduino IDE 1.8.9
    * I personally prefer exactly this version, others may do it as well
 
