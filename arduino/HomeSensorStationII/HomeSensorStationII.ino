@@ -13,6 +13,7 @@
 #define PROGNAME2       "Station"
 #define PROGVERS        "v2.2" 
 
+#include "Arduino.h"
 #include "Wire.h"
 #include "RFMxx.h"
 #include "SensorBase.h"
@@ -20,9 +21,13 @@
 #include "Sensors.h"
 #include "EEPROM.h"
 #include "SSD1306_minimal.h"
-#include <ESP8266WiFi.h>
-#include "SensorWebClient.h"
+#include "wifi_config.h"
+
+#if WIFI_ENABLED == 1
+  #include <ESP8266WiFi.h>  
+  #include "SensorWebClient.h"
   
+#endif
 
 // --- Configuration ---------------------------------------------------------------------------------------------------
 #define RECEIVER_ENABLED       1                     // Set to 0 if you don't want to receive 
@@ -390,10 +395,6 @@ void setup(void) {
     Serial.println();
     Serial.println("*** LaCrosse weather station wireless receiver for IT+ sensors ***");
 
-  // call the setup for wifi
-  char * ssid= "KBBL";
-  char * password= "abcdef01234567890123456789";
-  sensorWebClient.setup(ssid, password);
   
   // OLED
   oled.init(0x3c);
@@ -402,15 +403,21 @@ void setup(void) {
   delay(1000);
   
   splash();
+
+  #if WIFI_ENABLED == 1
+    // call the setup for wifi
+    char * ssid= WIFI_SSID;
+    char * password= WIFI_PSK;
+    sensorWebClient.setup(ssid, password);
   
-  
-  
+  #endif
+    
   
   //
   
   sensors.addSensor( 0, "Fridge     ", 53 );//53
-  sensors.addSensor( 1, "Weather    ", 60 );//4
-  sensors.addSensor( 2, "Dining Room", 6 );//42
+  sensors.addSensor( 1, "Weather    ", 30 );//4
+  sensors.addSensor( 2, "Dining Room", 56 );//42
   
   SetDebugMode(DEBUG);
   LaCrosse::USE_OLD_ID_CALCULATION = USE_OLD_IDS;
