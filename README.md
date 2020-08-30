@@ -2,6 +2,7 @@
 
 ## requirements
 *  NodeMCU Board
+   * Arduino compatible ESP8266 controller board (4MB flash, I2C, SPI, WiFi, ... )
    * doc in german https://www.mikrocontroller-elektronik.de/nodemcu-esp8266-tutorial-wlan-board-arduino-ide/
 *  RFM12B
    * https://www.ebay.de/itm/RFM12B-868Mhz-Wireless-Transceiver-from-HopeRF-RFM12B-868S2P-/171670876052
