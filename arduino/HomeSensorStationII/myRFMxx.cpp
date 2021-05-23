@@ -153,7 +153,6 @@ void MyRFMxx::setup(){
   
   SetDebugMode(DEBUG);
   LaCrosse::USE_OLD_ID_CALCULATION = USE_OLD_IDS;
-  
 
   lastToggleR1 = millis();
   

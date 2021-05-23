@@ -42,6 +42,7 @@ private:
   unsigned long m_dataRate;
   unsigned long m_frequency;
   byte m_payloadPointer;
+  bool m_isPrimary;
   unsigned long m_lastReceiveTime;
   bool m_payloadReady;
   byte m_payload[PAYLOADSIZE];
@@ -1094,4 +1095,3 @@ private:
 #define RF_DAGC_IMPROVED_LOWBETA0   0x30  // Recommended default
 
 #endif
-

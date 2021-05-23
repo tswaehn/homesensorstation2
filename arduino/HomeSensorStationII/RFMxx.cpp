@@ -146,6 +146,56 @@ void RFMxx::InitialzeLaCrosse() {
     Serial.println(GetRadioName());
   }
 
+
+  pinMode(m_mosi, OUTPUT);
+  pinMode(m_miso, INPUT);
+  pinMode(m_sck, OUTPUT);
+  pinMode(m_ss, OUTPUT);
+  pinMode(m_irq, INPUT);
+
+  digitalWrite(m_ss, HIGH);
+  
+
+  // No radio found until now
+  m_radioType = RFMxx::None;
+
+  // Is there a RFM69 ?
+  WriteReg(REG_PAYLOADLENGTH, 0xA);
+  if (ReadReg(REG_PAYLOADLENGTH) == 0xA) {
+    WriteReg(REG_PAYLOADLENGTH, 0x40);
+    if (ReadReg(REG_PAYLOADLENGTH) == 0x40) {
+      m_radioType = RFMxx::RFM69CW;
+    }
+  }
+
+  // Is there a RFM12 ?
+  if (m_radioType == RFMxx::None) {
+    if (m_isPrimary) {
+      m_radioType = RFMxx::RFM12B;
+    }
+    else {
+      spi16(0x820C); // Osc. + LBD
+      for (int i = 0; i < 1000; i++) {
+        asm("nop");
+      }
+
+      spi16(0xC04F); // LBD=3.7V
+      for (int i = 0; i < 1000; i++) {
+        asm("nop");
+      }
+      if ((spi16(0x0000) & 0x0400) == 0x0400) {
+        spi16(0xC040);  // LBD = 2.2V
+        for (int i = 0; i < 1000; i++) {
+          asm("nop");
+        }
+
+        if ((spi16(0x0000) & 0x0400) == 0) {
+          m_radioType = RFMxx::RFM12B;
+        }
+      }
+    }
+  }
+  
   digitalWrite(m_ss, HIGH);
   EnableReceiver(false);
 
@@ -318,63 +368,14 @@ RFMxx::RFMxx(byte mosi, byte miso, byte sck, byte ss, byte irq, bool isPrimary) 
   m_sck = sck;
   m_ss = ss;
   m_irq = irq;
-
+  
   m_debug = false;
   m_dataRate = 17241;
   m_frequency = 868300;
   m_payloadPointer = 0;
   m_lastReceiveTime = 0;
   m_payloadReady = false;
-
-
-  pinMode(m_mosi, OUTPUT);
-  pinMode(m_miso, INPUT);
-  pinMode(m_sck, OUTPUT);
-  pinMode(m_ss, OUTPUT);
-  pinMode(m_irq, INPUT);
-
-  digitalWrite(m_ss, HIGH);
-
-  // No radio found until now
-  m_radioType = RFMxx::None;
-
-  // Is there a RFM69 ?
-  WriteReg(REG_PAYLOADLENGTH, 0xA);
-  if (ReadReg(REG_PAYLOADLENGTH) == 0xA) {
-    WriteReg(REG_PAYLOADLENGTH, 0x40);
-    if (ReadReg(REG_PAYLOADLENGTH) == 0x40) {
-      m_radioType = RFMxx::RFM69CW;
-    }
-  }
-
-  // Is there a RFM12 ?
-  if (m_radioType == RFMxx::None) {
-    if (isPrimary) {
-      m_radioType = RFMxx::RFM12B;
-    }
-    else {
-      spi16(0x820C); // Osc. + LBD
-      for (int i = 0; i < 1000; i++) {
-        asm("nop");
-      }
-
-      spi16(0xC04F); // LBD=3.7V
-      for (int i = 0; i < 1000; i++) {
-        asm("nop");
-      }
-      if ((spi16(0x0000) & 0x0400) == 0x0400) {
-        spi16(0xC040);  // LBD = 2.2V
-        for (int i = 0; i < 1000; i++) {
-          asm("nop");
-        }
-
-        if ((spi16(0x0000) & 0x0400) == 0) {
-          m_radioType = RFMxx::RFM12B;
-        }
-      }
-    }
-  }
-
+  m_isPrimary = isPrimary;
 }
 
 void RFMxx::SetDebugMode(boolean mode) {

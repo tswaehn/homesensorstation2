@@ -26,6 +26,15 @@
 *  upload to NodeMCU
 *  done
 
+***ATTENTION !!!!***
+
+* use ardino IDE version 1.8.5
+* use ESP library https://arduino.esp8266.com/stable/package_esp8266com_index.json
+* use EPS board version 2.7.4
+* use settings:
+   * arduino_esp_settings.png
+
+
 
 ## pin-out
 *  SSD1306 Display 

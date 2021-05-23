@@ -220,7 +220,7 @@ void loop(void) {
   //
   //
   display();
-
+  
   static unsigned long lastTime= 0;
   unsigned long currentTime= millis();
 
@@ -280,13 +280,13 @@ void setup(void) {
   
   //
   
-  sensors.addSensor( 0, "Fridge     ", 53 );//53
+  sensors.addSensor( 0, "Fridge     ", 20 );//53
   sensors.addSensor( 1, "Weather    ", 30 );//4
-  sensors.addSensor( 2, "Dining Room", 56 );//42
+  sensors.addSensor( 2, "Dining Room", 24 );//42
 
   myRFMxx.setup();
   
-
+  Serial.println("setup complete");
 
 }
 
